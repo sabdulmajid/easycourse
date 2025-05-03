@@ -1,0 +1,5 @@
+venv/*
+uploads/*
+index/*
+
+.env
