@@ -14,6 +14,11 @@ class VectorSearch:
         """
         self.dimension = dimension
         self.index = faiss.IndexFlatIP(dimension)
+        # try HSNW -- doesn't respond? look into this
+        # see this error: curl: (52) Empty reply from server
+        # self.index = faiss.IndexHNSWFlat(dimension, 32)
+        # self.index.hnsw.efSearch = 64
+        # self.index.hnsw.efConstruction = 100
         self.texts = []
         self.metadata = []
 
