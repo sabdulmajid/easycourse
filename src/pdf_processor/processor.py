@@ -18,44 +18,47 @@ class PDFProcessor:
         """
         self.min_text_length = min_text_length
         # Download the NLTK data for sentence tokenization
-        nltk.download('punkt_tab')
+        nltk.download('punkt')
 
-    def _extract_text_from_pdf(self, pdf_path: str) -> List[str]:
+    def _extract_text_from_pdf(self, pdf_path: str) -> Tuple[List[str], List[int]]:
         """Extract text from a regular PDF file."""
         chunks = []
+        pages = []
         with open(pdf_path, 'rb') as file:
             pdf_reader = PyPDF2.PdfReader(file)
-            
-            for page_num in range(len(pdf_reader.pages)):
-                page = pdf_reader.pages[page_num]
-                text = page.extract_text()
-                
+
+            for page_num, page in enumerate(pdf_reader.pages, start=1):
+                text = page.extract_text() or ""
+
                 # Split text into sentences
                 sentences = sent_tokenize(text)
                 chunks.extend(sentences)
-        
-        return chunks
+                pages.extend([page_num] * len(sentences))
 
-    def _extract_text_from_scanned_pdf(self, pdf_path: str) -> List[str]:
+        return chunks, pages
+
+    def _extract_text_from_scanned_pdf(self, pdf_path: str) -> Tuple[List[str], List[int]]:
         """Extract text from a scanned PDF using OCR."""
         chunks = []
-        
+        pages = []
+
         # Convert PDF to images
         images = convert_from_path(pdf_path)
-        
-        for image in images:
+
+        for page_num, image in enumerate(images, start=1):
             # Convert image to grayscale for better OCR
             if image.mode != 'L':
                 image = image.convert('L')
-            
+
             # Perform OCR
             text = pytesseract.image_to_string(image)
-            
+
             # Split text into paragraphs and filter out empty ones
             paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
             chunks.extend(paragraphs)
-        
-        return chunks
+            pages.extend([page_num] * len(paragraphs))
+
+        return chunks, pages
 
     def process_pdf(self, pdf_path: str) -> Tuple[List[str], List[int]]:
         """
@@ -69,24 +72,22 @@ class PDFProcessor:
             and page_numbers are the corresponding page numbers
         """
         # First try regular text extraction
-        chunks = self._extract_text_from_pdf(pdf_path)
-        
+        chunks, pages = self._extract_text_from_pdf(pdf_path)
+
         # If we got very little text, assume it's a scanned document
         if len(' '.join(chunks)) < 100:
-            chunks = self._extract_text_from_scanned_pdf(pdf_path)
+            chunks, pages = self._extract_text_from_scanned_pdf(pdf_path)
         
         # Filter out very short chunks
         filtered_chunks = []
-        page_numbers = []
-        current_page = 0
-        
-        for chunk in chunks:
+        filtered_pages = []
+
+        for chunk, page in zip(chunks, pages):
             if len(chunk) >= self.min_text_length:
                 filtered_chunks.append(chunk)
-                page_numbers.append(current_page)
-            current_page += 1
-        
-        return filtered_chunks, page_numbers
+                filtered_pages.append(page)
+
+        return filtered_chunks, filtered_pages
 
     def process_pdf_directory(self, directory_path: str) -> Tuple[List[str], List[str], List[int]]:
         """
