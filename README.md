@@ -87,3 +87,5 @@ curl -X POST -H "Content-Type: application/json" \
 - Stores index and metadata for persistence
 - Generate summaries of uploaded PDFs
 - Translate text results into other languages
+- Automatically loads an existing index on startup
+- Keeps track of page numbers for more accurate results

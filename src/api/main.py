@@ -5,8 +5,6 @@ from pydantic import BaseModel
 import os
 import shutil
 from pathlib import Path
-import nltk
-from nltk.tokenize import sent_tokenize
 
 from ..summarizer.summary import SummaryGenerator
 from ..translator.translator import TextTranslator
@@ -39,6 +37,13 @@ UPLOAD_DIR = Path("uploads")
 INDEX_DIR = Path("index")
 UPLOAD_DIR.mkdir(exist_ok=True)
 INDEX_DIR.mkdir(exist_ok=True)
+
+# Attempt to load an existing index on startup
+if (INDEX_DIR / "index.faiss").exists() and (INDEX_DIR / "data.pkl").exists():
+    try:
+        vector_search = VectorSearch.load(str(INDEX_DIR))
+    except Exception:
+        vector_search = None
 
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...)):
@@ -136,7 +141,8 @@ async def search(query: str, k: int = 5):
         
         for line in lines:
             # Calculate semantic similarity score (from FAISS)
-            semantic_score = 1 / (1 + distance)
+            # FAISS returns cosine similarity for normalized embeddings
+            semantic_score = (distance + 1) / 2
             
             # Calculate exact match score
             line_words = set(line.lower().split())
