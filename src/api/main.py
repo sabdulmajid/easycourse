@@ -1,9 +1,13 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-
+from typing import List
+from pydantic import BaseModel
 import os
 import shutil
 from pathlib import Path
+
+from ..summarizer.summary import SummaryGenerator
+from ..translator.translator import TextTranslator
 
 
 from ..pdf_processor.processor import PDFProcessor
@@ -25,6 +29,8 @@ app.add_middleware(
 pdf_processor = PDFProcessor()
 embedding_generator = EmbeddingGenerator()
 vector_search = None
+summary_generator = SummaryGenerator()
+translator_cache = {}
 
 # Create directories for uploads and index
 UPLOAD_DIR = Path("uploads")
@@ -72,8 +78,43 @@ async def upload_pdf(file: UploadFile = File(...)):
     
     # Save the index
     vector_search.save(str(INDEX_DIR))
-    
+
     return {"message": f"Successfully processed {len(chunks)} chunks from {file.filename}"}
+
+
+@app.post("/summary")
+async def summarize_pdf(file: UploadFile = File(...)):
+    """Upload a PDF file and return a short summary."""
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File must be a PDF")
+
+    file_path = UPLOAD_DIR / file.filename
+    with file_path.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    chunks, _ = pdf_processor.process_pdf(str(file_path))
+    if not chunks:
+        raise HTTPException(status_code=400, detail="No text could be extracted from the PDF")
+
+    text = " ".join(chunks[:50])
+    summary = summary_generator.summarize(text)
+    return {"summary": summary}
+
+
+class TranslationRequest(BaseModel):
+    text: str
+    target_lang: str = "es"
+
+
+@app.post("/translate")
+async def translate_text(req: TranslationRequest):
+    """Translate text from English to a target language."""
+    if req.target_lang not in translator_cache:
+        translator_cache[req.target_lang] = TextTranslator(req.target_lang)
+
+    translator = translator_cache[req.target_lang]
+    translation = translator.translate(req.text)
+    return {"translation": translation}
 
 @app.get("/search")
 async def search(query: str, k: int = 5):
