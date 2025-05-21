@@ -46,6 +46,14 @@ The server will be available at `http://localhost:8000`
 - **GET** `/status`
 - Get the current status of the search index
 
+### Summarize PDF
+- **POST** `/summary`
+- Upload a PDF and receive a short summary
+
+### Translate Text
+- **POST** `/translate`
+- Translate text from English to another language using JSON body
+
 ## Example Usage
 
 1. Upload a PDF:
@@ -58,6 +66,18 @@ curl -X POST -F "file=@your_document.pdf" http://localhost:8000/upload
 curl "http://localhost:8000/search?query=your search query"
 ```
 
+3. Summarize a PDF:
+```bash
+curl -X POST -F "file=@your_document.pdf" http://localhost:8000/summary
+```
+
+4. Translate text to Spanish:
+```bash
+curl -X POST -H "Content-Type: application/json" \
+    -d '{"text": "Hello world", "target_lang": "es"}' \
+    http://localhost:8000/translate
+```
+
 ## Features
 
 - Handles both regular PDFs and scanned documents with OCR
@@ -65,3 +85,5 @@ curl "http://localhost:8000/search?query=your search query"
 - FAISS for efficient vector similarity search
 - FastAPI for a modern, async API
 - Stores index and metadata for persistence
+- Generate summaries of uploaded PDFs
+- Translate text results into other languages
