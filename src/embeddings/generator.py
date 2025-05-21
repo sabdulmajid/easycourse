@@ -23,7 +23,12 @@ class EmbeddingGenerator:
         Returns:
             numpy array of shape (n_texts, embedding_dimension)
         """
-        return self.model.encode(texts, show_progress_bar=True)
+        return self.model.encode(
+            texts,
+            show_progress_bar=True,
+            convert_to_numpy=True,
+            normalize_embeddings=True,
+        )
 
     def generate_embedding(self, text: str) -> np.ndarray:
         """
@@ -35,8 +40,12 @@ class EmbeddingGenerator:
         Returns:
             numpy array of shape (embedding_dimension,)
         """
-        return self.model.encode([text])[0]
+        return self.model.encode(
+            [text],
+            convert_to_numpy=True,
+            normalize_embeddings=True,
+        )[0]
 
     def get_dimension(self) -> int:
         """Get the dimension of the embeddings."""
-        return self.dimension 
+        return self.dimension

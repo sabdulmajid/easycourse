@@ -65,3 +65,5 @@ curl "http://localhost:8000/search?query=your search query"
 - FAISS for efficient vector similarity search
 - FastAPI for a modern, async API
 - Stores index and metadata for persistence
+- Automatically loads an existing index on startup
+- Keeps track of page numbers for more accurate results
