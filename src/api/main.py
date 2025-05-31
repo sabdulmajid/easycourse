@@ -8,6 +8,7 @@ from pathlib import Path
 
 from ..summarizer.summary import SummaryGenerator
 from ..translator.translator import TextTranslator
+from ..qa.qa import QuestionAnswerer
 
 
 from ..pdf_processor.processor import PDFProcessor
@@ -31,6 +32,7 @@ embedding_generator = EmbeddingGenerator()
 vector_search = None
 summary_generator = SummaryGenerator()
 translator_cache = {}
+qa_generator = QuestionAnswerer()
 
 # Create directories for uploads and index
 UPLOAD_DIR = Path("uploads")
@@ -106,6 +108,11 @@ class TranslationRequest(BaseModel):
     target_lang: str = "es"
 
 
+class QARequest(BaseModel):
+    question: str
+    k: int = 3
+
+
 @app.post("/translate")
 async def translate_text(req: TranslationRequest):
     """Translate text from English to a target language."""
@@ -115,6 +122,24 @@ async def translate_text(req: TranslationRequest):
     translator = translator_cache[req.target_lang]
     translation = translator.translate(req.text)
     return {"translation": translation}
+
+
+@app.post("/answer")
+async def answer_question(req: QARequest):
+    """Answer a question using the indexed PDFs as context."""
+    if vector_search is None:
+        raise HTTPException(status_code=400, detail="No PDFs have been indexed yet")
+
+    # Search for relevant chunks
+    query_embedding = embedding_generator.generate_embedding(req.question)
+    results = vector_search.search(query_embedding, req.k)
+
+    if not results:
+        raise HTTPException(status_code=404, detail="No relevant context found")
+
+    context = " ".join([text for text, _metadata, _distance in results])
+    answer = qa_generator.answer(req.question, context)
+    return {"answer": answer}
 
 @app.get("/search")
 async def search(query: str, k: int = 5):

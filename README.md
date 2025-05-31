@@ -78,6 +78,13 @@ curl -X POST -H "Content-Type: application/json" \
     http://localhost:8000/translate
 ```
 
+5. Ask a question about the indexed PDFs:
+```bash
+curl -X POST -H "Content-Type: application/json" \
+    -d '{"question": "What is the main topic?"}' \
+    http://localhost:8000/answer
+```
+
 ## Features
 
 - Handles both regular PDFs and scanned documents with OCR
@@ -89,3 +96,4 @@ curl -X POST -H "Content-Type: application/json" \
 - Translate text results into other languages
 - Automatically loads an existing index on startup
 - Keeps track of page numbers for more accurate results
+- Answer questions about PDFs using retrieval-augmented QA
